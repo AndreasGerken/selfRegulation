@@ -1,6 +1,6 @@
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib import animation
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 fig = plt.figure()
 ax = plt.axes(xlim=(-2,2), ylim=(-2, 2))
