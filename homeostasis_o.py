@@ -204,7 +204,6 @@ def main(args):
     plt.show()
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ns", "--numsteps", type=int, default=2000)
