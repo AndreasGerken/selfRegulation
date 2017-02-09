@@ -2,7 +2,8 @@
 homeostasis example according to playfulmachines, ca. pgs. 65-67. The numbers of the formulas in the comments correspond to the formulas in the book.
 control timesteps (i.e. 2000) with --numsteps 2000
 control mode with --mode animate|none to have a animation of the pendulum
-control disturbance at 1000 timesteps with --disturbance true|false
+control disturbance at 950 timesteps with --disturbance true|false
+control disturbance_noise with --disturbance_noise 0.01
 """
 
 import argparse
@@ -38,6 +39,7 @@ def main(args):
     numsteps = args.numsteps
     mode = args.mode
     disturbance = args.disturbance
+    disturbance_noise = args.disturbance_noise
 
     # system
     angle = np.random.uniform(- np.pi/8.0, + np.pi/8.0, size=(1,1)) # start ~ 90 deg to the right
@@ -59,7 +61,7 @@ def main(args):
     C = np.random.uniform(-1e-1, 1e-1, size=(ndim_m, ndim_s))
     h = np.random.uniform(-1e-3, 1e-3, size=y.shape) # ones_like(y) * 0.1
 
-    epsA = 0.03
+    epsA = 0.05
     epsC = 0.15
     # global angle, angleSpeed, A, C, h, b, y
 
@@ -68,8 +70,8 @@ def main(args):
     xPred_ = np.zeros((numsteps,) + xPred.shape)
     xError_ = np.zeros((numsteps,) + xError.shape)
     y_ = np.zeros((numsteps,) + y.shape)
-    Anorm_ = np.zeros((numsteps,1))
-    Cnorm_ = np.zeros((numsteps,1))
+    A_ = np.zeros((numsteps,1) + A.shape)
+    C_ = np.zeros((numsteps,1) + C.shape)
     angle_ = np.zeros((numsteps,) + angle.shape)
     angleSpeed_ = np.zeros((numsteps,) + angleSpeed.shape)
     
@@ -91,8 +93,8 @@ def main(args):
         db = epsA * xError # formula 4.6
         b += db
 
-	# calculate norm from A for logging
-        Anorm = np.linalg.norm(A, 2)
+	    # calculate norm from A for logging
+        # Anorm = np.linalg.norm(A, 2)
         
         # print("|A| = %f, |dA| = %f" % (Anorm, np.linalg.norm(dA, 2)))
         # print("|b| = %f, |db| = %f" % (np.linalg.norm(b, 2), np.linalg.norm(db, 2)))
@@ -118,17 +120,7 @@ def main(args):
         C += dC
         h += dh
 
-        Cnorm = np.linalg.norm(C, 2)
-        
-        # # TODO: hacky?
-        # n = (np.dot(A, g_z) * xError).T
-        # print("n:", n)
-
-        # C += epsC * n * 1.0
-
-        # C += epsC * A * (1 - np.power(np.tanh(C * x + h), 2)) * xError * x
-        # h += epsC * A * (1 - np.power(np.tanh(C * x + h), 2)) * xError
-
+        # Cnorm = np.linalg.norm(C, 2)
 
         # #    print("A b C h:", A, b, C, h)
 
@@ -140,8 +132,6 @@ def main(args):
         # predict next sensor state
         xPred = np.dot(A, y) + b
 
-	# TODO: In this example, the controler will control the angle directly. Elsewise it would not really be possible, to predict the sensor output from the input (M = Ay + b) since when y is just torque, there is no information about the system. The System would have to be more complex (M = Ax + By + c)
-        
         # angleSpeed += motorTorque * y[0][0]
         angleSpeed = motorTorque * y
 
@@ -152,13 +142,14 @@ def main(args):
         angleSpeed += np.cos(angle) * g
         
         # add disturbance after 1000 timesteps
-        if(i > 1000 and i < 1050 and disturbance):
+        if(i % 1000 > 950 and disturbance):
             angleSpeed += 0.1
+
+        if(disturbance_noise>0):
+            angleSpeed += np.random.standard_normal(1) * disturbance_noise
 
         # calculate new position
         angle += angleSpeed
-
-
 
         if(angle > 2.0 * np.pi):
             angle -= 2.0 * np.pi
@@ -171,8 +162,8 @@ def main(args):
         x_[i] = x
         xPred_[i] = xPred
         xError_[i] = xError
-        Anorm_[i] = Anorm
-        Cnorm_[i] = Cnorm
+        A_[i] = A
+        C_[i] = C
         y_[i] = y
         angle_[i] = angle
         angleSpeed_[i] = angleSpeed
@@ -181,24 +172,26 @@ def main(args):
     
 
     plt.figure()
-    plt.subplot(511)
+    plt.subplot(611)
     plt.plot([4]*2000,  "k--", alpha=0.5, label = "xP0")
     plt.plot(x_.reshape((numsteps, -1)), "k-", alpha=0.5, label="x")
     plt.plot(xPred_.reshape((numsteps, -1)) + 2, "b-", alpha=0.5, label="xP")
     plt.plot(xError_.reshape((numsteps, -1)) + 4, "r-", alpha=0.5, label="xE")
     plt.legend()
-    plt.subplot(512)
+    plt.subplot(612)
     plt.plot(y_.reshape((numsteps, -1)), "k-", label="y")
     plt.legend()
-    plt.subplot(513)
+    plt.subplot(613)
     plt.plot(angle_.reshape((numsteps, -1)), "k-", label="angle")
     plt.legend()
-    plt.subplot(514)
+    plt.subplot(614)
     plt.plot(angleSpeed_.reshape((numsteps, -1)), "k-", label="angledot")
     plt.legend()
-    plt.subplot(515)
-    plt.plot(Anorm_.reshape((numsteps, -1)), "k-", label="|A|")
-    plt.plot(Cnorm_.reshape((numsteps, -1)), "k-", label="|C|")
+    plt.subplot(615)
+    plt.plot(A_.reshape((numsteps, -1)), "k-", label="A")
+    plt.legend()
+    plt.subplot(616)
+    plt.plot(C_.reshape((numsteps, -1)), "k-", label="C")
     plt.legend()
 
     if(mode == "animate"):
@@ -216,7 +209,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ns", "--numsteps", type=int, default=2000)
     parser.add_argument("-m", "--mode", type=str, default = "none")
-    parser.add_argument("-d", "--disturbance", type=bool, default = "false")
+    parser.add_argument("-d", "--disturbance", type=bool, default = False)
+    parser.add_argument("-dn", "--disturbance_noise", type=float, default=0.0)
     args = parser.parse_args()
     main(args)
 
