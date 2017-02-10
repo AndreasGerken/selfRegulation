@@ -47,7 +47,7 @@ def main(args):
     l = 1.5
     g = -0.01
     friction = 0.99
-    motorTorque = 0.02
+    motorTorque = 0.01
 
     # brain
     x = np.zeros((ndim_s, 1))
@@ -80,7 +80,8 @@ def main(args):
     for i in range(numsteps):
 
         # new measurement
-        x = np.array([[np.sin(angle[0,0])], [np.cos(angle[0,0])]]) # ,[2,1])
+        x[0][0] = np.sin(angle[0,0])
+        x[1][0] = np.cos(angle[0,0])
         # print("x:", x)
 
 	# calculate prediction error
@@ -104,11 +105,21 @@ def main(args):
         # print("z:", z, z.shape)
 
         g_z = 1 - np.power(np.tanh(z),2) # formula 4.9+
-        # print("g_z:", g_z, g_z.shape)
+        #print("g_z:", g_z, g_z.shape)
 
-        eta = np.dot(A.T, xError) * g_z # formula 4.9
-   
-        # print("eta.shape", eta.shape)
+
+        eta = np.dot(A.T, xError) * g_z # formula 4.9 does exactly the same than the long variant
+        #print("eta:", eta.shape)
+        
+        # eta = np.zeros_like(y)
+        # for m in range(ndim_m):
+        #     for s in range(ndim_s):
+        #         eta[m] += A[s][m] * g_z[m][0] * xError[s][0]
+        
+        #print(eta_old - eta)
+        #print(eta)
+        #print("eta:", eta.shape)
+        #print("x:",x)
 
         dC = epsC * np.dot(eta , x.T) # formula 4.7
         dh = epsC * eta # formula 4.8
@@ -126,14 +137,14 @@ def main(args):
 
         # Controler
         y = np.tanh(np.dot(C, x) + h) # formula 4.3
-        # print("y:", y)
+        #print("y:", y)
     
         # Feed forward model
         # predict next sensor state
         xPred = np.dot(A, y) + b
 
         # angleSpeed += motorTorque * y[0][0]
-        angleSpeed = motorTorque * y
+        angleSpeed = motorTorque * np.reshape(y[0][0],(1,1))
 
         # friction
         angleSpeed *= friction
@@ -173,25 +184,25 @@ def main(args):
 
     plt.figure()
     plt.subplot(611)
-    plt.plot([4]*2000,  "k--", alpha=0.5, label = "xP0")
-    plt.plot(x_.reshape((numsteps, -1)), "k-", alpha=0.5, label="x")
-    plt.plot(xPred_.reshape((numsteps, -1)) + 2, "b-", alpha=0.5, label="xP")
-    plt.plot(xError_.reshape((numsteps, -1)) + 4, "r-", alpha=0.5, label="xE")
+    plt.plot([4]*numsteps,  "k--", alpha=0.5, label = "xP0", linewidth=1.0)
+    plt.plot(x_.reshape((numsteps, -1)), "k-", alpha=0.5, label="x", linewidth=1.0)
+    plt.plot(xPred_.reshape((numsteps, -1)) + 2, "b-", alpha=0.5, label="xP", linewidth=1.0)
+    plt.plot(xError_.reshape((numsteps, -1)) + 4, "r-", alpha=0.5, label="xE", linewidth=1.0)
     plt.legend()
     plt.subplot(612)
-    plt.plot(y_.reshape((numsteps, -1)), "k-", label="y")
+    plt.plot(y_.reshape((numsteps, -1)), "k-", label="y", linewidth=1.0)
     plt.legend()
     plt.subplot(613)
-    plt.plot(angle_.reshape((numsteps, -1)), "k-", label="angle")
+    plt.plot(angle_.reshape((numsteps, -1)), "k-", label="angle", linewidth=1.0)
     plt.legend()
     plt.subplot(614)
-    plt.plot(angleSpeed_.reshape((numsteps, -1)), "k-", label="angledot")
+    plt.plot(angleSpeed_.reshape((numsteps, -1)), "k-", label="angledot", linewidth=1.0)
     plt.legend()
     plt.subplot(615)
-    plt.plot(A_.reshape((numsteps, -1)), "k-", label="A")
+    plt.plot(A_.reshape((numsteps, -1)), "k-", label="A", linewidth=1.0)
     plt.legend()
     plt.subplot(616)
-    plt.plot(C_.reshape((numsteps, -1)), "k-", label="C")
+    plt.plot(C_.reshape((numsteps, -1)), "k-", label="C", linewidth=1.0)
     plt.legend()
 
     if(mode == "animate"):
