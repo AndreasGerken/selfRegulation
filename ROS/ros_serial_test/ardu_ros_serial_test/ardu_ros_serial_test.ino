@@ -4,16 +4,16 @@
  */
 
 #include <ros.h>
-#include <std_msgs/Empty.h>
+#include <std_msgs/Int32.h>
 
-#define LED_PIN LED_BUILTIN
+#define LED_PIN 10
 ros::NodeHandle nh;
 
-void messageCb( const std_msgs::Empty& toggle_msg){
-  digitalWrite(LED_PIN, HIGH-digitalRead(LED_PIN));   // blink the led
+void messageCb( const std_msgs::Int32& valueMsg){
+  analogWrite(LED_PIN, (int)valueMsg.data);   // blink the led
 }
 
-ros::Subscriber<std_msgs::Empty> sub("comTest", &messageCb );
+ros::Subscriber<std_msgs::Int32> sub("comTestPub", &messageCb );
 
 void setup()
 {

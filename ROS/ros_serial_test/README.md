@@ -10,6 +10,7 @@ Do those tutorials first:
 
 To use the code:
 *  Load the ardu_ros_serial_test.ino to an Arduino
+*  Atach an LED with a fitting resistor to pin 10. To just test the serial connection, you can also use LED_BUILTIN (13) which can't do analogWrite)
 *  Start roscore
 *  Start rosserial with: rosrun rosserial_python serial_node.py /dev/ttyUSB0
 *  Run the python script with python2: python ros_serial_test.py
