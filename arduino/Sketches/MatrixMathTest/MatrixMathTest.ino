@@ -19,7 +19,7 @@ void setup() {
 }
 
 void loop() {
-  
+  if(lastUpdateMillis + interval < millis()){
   
   Matrix.Transpose((float*)A, NUM_M, NUM_S, (float*)AT);
   Matrix.Print((float*)AT, NUM_S, NUM_M, "AT");
