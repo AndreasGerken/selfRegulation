@@ -3,7 +3,7 @@
 This Code connects a ROS node via a rosserial node to an arduino.
 The python program will connect to ros and send a empty message with the topic /comTest every second.
 The rosserial node sends it to the arduino and there the code subscribes to it.
-The code was not inserted in a ros package but is just a standalone script.
+The python code was not inserted in a ros package but is just a standalone script.
 
 Do those tutorials first:
 * http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
