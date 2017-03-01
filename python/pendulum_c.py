@@ -1,13 +1,15 @@
 #!/usr/bin/env/python
 # TODO: NOT TESTED!!!!!!!
 
+import numpy as np
+
 class Pendulum():
 
     def __init__(self):
 
         # start ~ 90 deg to the right
         self.angle = np.random.uniform(- np.pi/8.0, + np.pi/8.0, size=(1,1))
-        self.angleSpeed = np.zeros_like(angle)
+        self.angleSpeed = np.zeros_like(self.angle)
 
         # length of the pendulum
         self.l = 1.5

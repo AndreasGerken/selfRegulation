@@ -1,22 +1,20 @@
 #!/usr/bin/env python
-
 import rospy
 import time
 from std_msgs.msg import Int32
 
 class SerialTest(object):
     def __init__(self):
-        self.name = "serial_test"
+        self.name = "omnidirectional_async"
         self.value = 0
-        self.valueD = 1
 
         self.rcv = 0
         self.sent = 0
 
+        rospy.init_node(self.name)
+
         self.pub = rospy.Publisher("/comTestPub", Int32, queue_size=5)
         self.sub = rospy.Subscriber("/comTestSub", Int32, self.subFunc)
-
-        rospy.init_node(self.name)
 
     def loop(self):
         # increment counter for sent messages
@@ -43,7 +41,7 @@ if __name__ == "__main__":
     print("Initialization")
     serial_test = SerialTest()
 
-    print("Starting Loop")
+    print("Starting loop")
     while not rospy.is_shutdown():
         serial_test.loop()
 

@@ -1,5 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env/python
 # TODO: NOT TESTED!!!!!!!
+
+import numpy as np
 
 class Homeostasis():
 
@@ -19,19 +21,19 @@ class Homeostasis():
         self.dim_s = dim_s
 
         # initialize "brain" variables
-        self.x = np.zeros((ndim_s, 1))   # sensor vector
-        self.xPred = np.zeros_like(x)    # predicted sensor vector
-        self.y = np.zeros((ndim_m, 1))   # motor vector
+        self.x = np.zeros((self.dim_s, 1))   # sensor vector
+        self.xPred = np.zeros_like(self.x)    # predicted sensor vector
+        self.y = np.zeros((self.dim_m, 1))   # motor vector
 
         # initialize model variables
-        self.model = Model()
-        self.model.A = np.zeros([ndim_s, ndim_m])
-        self.model.b = np.zeros_like(x)
+        self.model = self.Model()
+        self.model.A = np.zeros([self.dim_s, self.dim_m])
+        self.model.b = np.zeros_like(self.x)
 
         # initialize controller variables
-        self.controller = Controller()
-        self.controller.C = np.random.uniform(-1e-1, 1e-1, size=(ndim_m, ndim_s))  # random
-        self.controller.h = np.random.uniform(-1e-3, 1e-3, size=y.shape)
+        self.controller = self.Controller()
+        self.controller.C = np.random.uniform(-1e-1, 1e-1, size=(self.dim_m, self.dim_s))  # random
+        self.controller.h = np.random.uniform(-1e-3, 1e-3, size=self.y.shape)
 
         # initialize learning variables
         # TODO: should this be done here?

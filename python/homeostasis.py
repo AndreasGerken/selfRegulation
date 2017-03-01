@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# global variable 
+# global variable
 x_ = 0
 line = 0
 
@@ -24,7 +24,7 @@ def animate(i):
     line_x[1] = x_.reshape(numsteps, -1)[i][0]
     line_y[1] = x_.reshape(numsteps, -1)[i][1]
     line.set_data(line_x, line_y)
-    return line, 
+    return line,
 
 
 def init():
@@ -42,7 +42,7 @@ def main(args):
     disturbance_noise = args.disturbance_noise
 
     # system
-    angle = np.random.uniform(- np.pi/8.0, + np.pi/8.0, size=(1,1)) # start ~ 90 deg to the right
+
     angleSpeed = np.ones_like(angle) * 0.0
     l = 1.5
     g = -0.01
@@ -74,7 +74,7 @@ def main(args):
     C_ = np.zeros((numsteps,1) + C.shape)
     angle_ = np.zeros((numsteps,) + angle.shape)
     angleSpeed_ = np.zeros((numsteps,) + angleSpeed.shape)
-    
+
 
 
     for i in range(numsteps):
@@ -96,7 +96,7 @@ def main(args):
 
 	    # calculate norm from A for logging
         # Anorm = np.linalg.norm(A, 2)
-        
+
         # print("|A| = %f, |dA| = %f" % (Anorm, np.linalg.norm(dA, 2)))
         # print("|b| = %f, |db| = %f" % (np.linalg.norm(b, 2), np.linalg.norm(db, 2)))
 
@@ -110,12 +110,12 @@ def main(args):
 
         eta = np.dot(A.T, xError) * g_z # formula 4.9 does exactly the same than the long variant
         #print("eta:", eta.shape)
-        
+
         # eta = np.zeros_like(y)
         # for m in range(ndim_m):
         #     for s in range(ndim_s):
         #         eta[m] += A[s][m] * g_z[m][0] * xError[s][0]
-        
+
         #print(eta_old - eta)
         #print(eta)
         #print("eta:", eta.shape)
@@ -138,7 +138,7 @@ def main(args):
         # Controler
         y = np.tanh(np.dot(C, x) + h) # formula 4.3
         #print("y:", y)
-    
+
         # Feed forward model
         # predict next sensor state
         xPred = np.dot(A, y) + b
@@ -151,7 +151,7 @@ def main(args):
 
         # # gravity
         angleSpeed += np.cos(angle) * g
-        
+
         # add disturbance after 1000 timesteps
         if(i % 1000 > 950 and disturbance):
             angleSpeed += 0.1
@@ -180,7 +180,7 @@ def main(args):
         angleSpeed_[i] = angleSpeed
 
     # print("x_.shape", x_.shape)
-    
+
 
     plt.figure()
     plt.subplot(611)
@@ -211,7 +211,7 @@ def main(args):
         ax = plt.axes(xlim=(-2, 2), ylim=(-2, 2))
         line, = ax.plot([], [], lw=2)
         anim = animation.FuncAnimation(fig, animate, init_func=init, frames=numsteps, interval=20, blit=True)
-    
+
     plt.show()
 
 
@@ -223,4 +223,3 @@ if __name__ == "__main__":
     parser.add_argument("-dn", "--disturbance_noise", type=float, default=0.0)
     args = parser.parse_args()
     main(args)
-

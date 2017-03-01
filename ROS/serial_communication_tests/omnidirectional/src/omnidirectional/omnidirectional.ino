@@ -1,8 +1,3 @@
-/*
- * rosserial Subscriber Example
- * Blinks an LED on callback
- */
-
 #include <ros.h>
 #include <std_msgs/Int32.h>
 
@@ -13,9 +8,8 @@ ros::NodeHandle nh;
 
 std_msgs::Int32 messagePub;
 
-
 void messageCb( const std_msgs::Int32& messageSub){
-  analogWrite(LED_PIN, (int)messageSub.data);   // blink the led
+  analogWrite(LED_PIN, (int)messageSub.data);
 }
 
 ros::Subscriber<std_msgs::Int32> sub("comTestPub", &messageCb );
@@ -25,16 +19,9 @@ void setup()
 {
   pinMode(LED_PIN, OUTPUT);
   nh.initNode();
-  
-  //wait until you are actually connected
-  while (!nh.connected() ){
-    nh.spinOnce();
-  }
-  
+
   nh.subscribe(sub);
   nh.advertise(pub);
-
-  
 }
 
 void loop()
