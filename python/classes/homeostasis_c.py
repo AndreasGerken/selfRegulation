@@ -51,17 +51,17 @@ class Homeostasis():
 
     # trains the model (in this case A and b) from the prediction error
     def trainModel(self, _xError):
-        _dA = self.controller.eps * _xError
+        _dA = self.controller.eps * _xError * self.y
         _db = self.controller.eps * _xError
 
-        self.controller.A += _dA
-        self.controller.b += _db
+        self.model.A += _dA
+        self.model.b += _db
 
     # trains the controller (in this case C and h) from the prediction error
     def trainController(self, _xError):
         _z = np.dot(self.controller.C, self.x) + self.controller.h
         _g_z = 1 - np.power(np.tanh(_z), 2)
-        _eta = np.dot(self.A.T, _xError) * _g_z
+        _eta = np.dot(self.model.A.T, _xError) * _g_z
 
         _dC = self.controller.eps * np.dot(_eta, self.x.T)
         _dh = self.controller.eps * _eta
@@ -71,16 +71,17 @@ class Homeostasis():
 
     # calculate new motor command and return it
     def calculateMotorCommand(self):
-        return np.tanh(np.dot(self.controller.c, self.x) + self.controller.h)
+        return np.tanh(np.dot(self.controller.C, self.x) + self.controller.h)
 
     # calculate new prediction (about the sensors) and return it
     def calculatePrediction(self):
-        return np.dot(self.model.A, self.y), self.model.b
+        return np.dot(self.model.A, self.y) + self.model.b
 
     # unifies all necessary steps to learn from new data.
     # before, new sensor values shall be read,
     # afterwards the motor commands should be sent.
     def learningStep(self):
+
         # calculate prediction error
         _xError = self.calculatePredictionError()
 

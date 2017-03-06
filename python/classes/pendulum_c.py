@@ -1,14 +1,19 @@
 #!/usr/bin/env/python
-# TODO: NOT TESTED!!!!!!!
+
+# This is a controlable pendulum as a testsystem for self learning algorithms
+# The pendulum has one motor degree from -1 to 1 and two sensor degrees from -1 to 1
 
 import numpy as np
 
 class Pendulum():
 
     def __init__(self):
+        # motor and sensor dimensions for outside use
+        self.dim_m = 1
+        self.dim_s = 2
 
         # start ~ 90 deg to the right
-        self.angle = np.random.uniform(- np.pi/8.0, + np.pi/8.0, size=(1,1))
+        self.angle = np.random.uniform(- np.pi/8.0, + np.pi/8.0, size=(self.dim_m,1))
         self.angleSpeed = np.zeros_like(self.angle)
 
         # length of the pendulum
@@ -16,16 +21,15 @@ class Pendulum():
 
         # gravitational force
         self.g = -0.01
-        self.friction = 0.99
+        self.friction = 0.95
         self.motorTorque = 0.01
 
     # return measurement with two values (sin and cos of angle)
     def getMeasurement(self):
-        x1 = np.sin(angle[0,0])
-        x2 = np.cos(angle[0,0])
+        x1 = np.cos(self.angle[0,0])
+        x2 = np.sin(self.angle[0,0])
 
-        x = np.reshape(np.array(x1, x2), (2,-1))
-
+        x = np.reshape(np.array([x1, x2]), (self.dim_s,1))
         return x
 
     # calculate next timestep.
@@ -33,7 +37,7 @@ class Pendulum():
     def calculateStep(self, y):
 
         # accelerate with given torque percentage
-        self.angleSpeed = self.motorTorque * np.reshape(y[0,0], (1,1))
+        self.angleSpeed += self.motorTorque * np.reshape(y[0,0], (1,1))
 
         # friction
         self.angleSpeed *= self.friction
@@ -49,6 +53,3 @@ class Pendulum():
             self.angle -= 2.0 * np.pi
         if(self.angle < 0.0):
             self.angle += 2.0 * np.pi
-
-    def getAngle(self):
-        return self.angle
