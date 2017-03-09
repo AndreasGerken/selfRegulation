@@ -46,6 +46,7 @@ int16_t ax, ay, az, gx, gy, gz;
 #include <ros/time.h>
 #include <tiny_msgs/tinyVector.h>
 #include <tiny_msgs/tinyIMU.h>
+#include <std_msgs/Float32MultiArray.h>
 
 #include <Servo.h>
 
@@ -56,14 +57,20 @@ int16_t ax, ay, az, gx, gy, gz;
 #define servoMin 60
 #define servoMax 110
 
-ros::NodeHandle  nh;
 
+// Prototypes
+void writeServoPosition(int servoIndex, int position);
+void receiveMessage( const std_msgs::Float32MultiArray& message);
+
+ros::NodeHandle  nh;
 
 int servoPos[dim_m] = {90, 90, 90, 90};
 int servoDir = 1;
 
 tiny_msgs::tinyIMU imu_msg;
 ros::Publisher imu_pub("tinyImu", &imu_msg);
+
+ros::Subscriber<std_msgs::Float32MultiArray> subscriber("homeostasis_motor", receiveMessage);
 
 uint32_t seq;
 
@@ -72,8 +79,6 @@ int16_t servoPin[dim_m] = {5, 6, 9, 10};
 bool servoRevert[dim_m] = {false, false, true, true};
 Servo   servos[dim_m];
 
-// Prototypes
-void writeServoPosition(int servoIndex, int position);
 
 void setup()
 {
@@ -85,6 +90,7 @@ void setup()
   #endif
   nh.initNode();
   nh.advertise(imu_pub);
+  nh.subscribe(subscriber);
   
   nh.loginfo("ROS Setup finished, starting MPU6050");
   
@@ -120,9 +126,12 @@ void loop()
 
   imu_pub.publish( &imu_msg );
 
+  nh.spinOnce();
+  
+  // might be enough time for the answer and the callback
+  delay(10);
+
   if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
-
-
 
   // Attach Servos
   for(int i = 0; i < dim_m; i++){
@@ -130,8 +139,7 @@ void loop()
     writeServoPosition(i, servoPos[i]);
   }
 
-  nh.spinOnce();
-  delay(10);
+
 }
 
 
@@ -143,5 +151,12 @@ void writeServoPosition(int servoIndex, int position){
   }
 
   servos[servoIndex].write(realPosition);
+}
+
+void receiveMessage( const std_msgs::Float32MultiArray& message){
+  servoPos[0] = message.data[0];
+  servoPos[1] = message.data[1];
+  servoPos[2] = message.data[2];
+  servoPos[3] = message.data[3];  
 }
 
