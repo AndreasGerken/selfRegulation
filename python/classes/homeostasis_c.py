@@ -33,7 +33,7 @@ class Homeostasis():
         # initialize controller variables
         self.controller = self.Controller()
         self.controller.C = np.random.uniform(-1e-1, 1e-1, size=(self.dim_m, self.dim_s))  # random
-        self.controller.h = np.random.uniform(-1e-3, 1e-3, size=self.y.shape)
+        self.controller.h = np.random.uniform(-1e-2, 1e-2, size=self.y.shape)
 
         # initialize learning variables
         # TODO: should this be done here?
@@ -51,7 +51,7 @@ class Homeostasis():
 
     # trains the model (in this case A and b) from the prediction error
     def trainModel(self, _xError):
-        _dA = self.controller.eps * _xError * self.y
+        _dA = self.controller.eps * _xError * self.y.T
         _db = self.controller.eps * _xError
 
         self.model.A += _dA

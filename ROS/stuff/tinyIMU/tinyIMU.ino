@@ -46,40 +46,12 @@ int16_t ax, ay, az, gx, gy, gz;
 #include <ros/time.h>
 #include <tiny_msgs/tinyVector.h>
 #include <tiny_msgs/tinyIMU.h>
-#include <std_msgs/Float32MultiArray.h>
-
-#include <Servo.h>
-
-// General variables
-#define dim_m 4 // Legs
-#define dim_s 6 // Gyro acceleration and rotation
-
-#define servoMin 40
-#define servoMax 110
-
-
-// Prototypes
-void writeServoPosition(int servoIndex, int position);
-void receiveMessage( const std_msgs::Float32MultiArray& message);
-float mapfloat(long x, long in_min, long in_max, long out_min, long out_max);
-
 ros::NodeHandle  nh;
-
-float servoPos[dim_m] = {90, 90, 90, 90};
-float servoDir = 0.2;
 
 tiny_msgs::tinyIMU imu_msg;
 ros::Publisher imu_pub("tinyImu", &imu_msg);
 
-ros::Subscriber<std_msgs::Float32MultiArray> subscriber("homeostasis_motor", receiveMessage);
-
 uint32_t seq;
-
-// Servo variables
-int16_t servoPin[dim_m] = {5, 6, 9, 10};
-bool servoRevert[dim_m] = {false, false, true, true};
-Servo   servos[dim_m];
-
 
 void setup()
 {
@@ -91,7 +63,6 @@ void setup()
   #endif
   nh.initNode();
   nh.advertise(imu_pub);
-  nh.subscribe(subscriber);
   
   nh.loginfo("ROS Setup finished, starting MPU6050");
   
@@ -100,13 +71,9 @@ void setup()
   // MPU 6050 initialization
   nh.loginfo(accelgyro.testConnection() ? "MPU6050 connection successfull" : "MPU6050 connection failed");
 
-  seq = 0;
 
-  // Attach Servos
-  for(int i = 0; i < dim_m; i++){
-    servos[i].attach(servoPin[i]);
-    servos[i].write(servoPos[i]);
-  }
+
+  seq = 0;
 }
 
 void loop()
@@ -123,49 +90,9 @@ void loop()
   imu_msg.accel.z = az;
   imu_msg.gyro.x = gx;
   imu_msg.gyro.y = gy;
-  imu_msg.gyro.z = gz; //mapfloat(gz, -32768, 32768, 0, 1);
+  imu_msg.gyro.z = gz;
 
   imu_pub.publish( &imu_msg );
-
   nh.spinOnce();
-  
-  // might be enough time for the answer and the callback
-  delay(10);
-
-  if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
-
-  // Attach Servos
-  for(int i = 0; i < dim_m; i++){
-    servoPos[i] += servoDir;
-    writeServoPosition(i, servoPos[i]);
-  }
-
-
-}
-
-
-void writeServoPosition(int servoIndex, int position){
-  int realPosition = position;
-
-  if(servoRevert[servoIndex]){
-    realPosition = 180 - position;
-  }
-
-  servos[servoIndex].write(realPosition);
-}
-
-float mapfloat(long x, long in_min, long in_max, long out_min, long out_max)
-{
- if( x > in_max) x = in_max;
- if (x < in_min) x = in_min;
- return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
-}
-
-
-void receiveMessage( const std_msgs::Float32MultiArray& message){
-  servoPos[0] = mapfloat(message.data[0], -32768, 32768, servoMin, servoMax);;
-  servoPos[1] = mapfloat(message.data[1], -32768, 32768, servoMin, servoMax);;
-  servoPos[2] = mapfloat(message.data[2], -32768, 32768, servoMin, servoMax);;
-  servoPos[3] = mapfloat(message.data[3], -32768, 32768, servoMin, servoMax);;
 }
 
