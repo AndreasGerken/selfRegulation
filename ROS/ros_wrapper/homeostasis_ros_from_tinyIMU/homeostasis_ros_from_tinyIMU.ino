@@ -41,6 +41,9 @@ THE SOFTWARE.
 
 MPU6050 accelgyro;
 int16_t ax, ay, az, gx, gy, gz;
+double ax_m, ay_m, az_m, gx_m, gy_m, gz_m;
+double accel_alpha = 0.7; // Experimental Values
+double gyro_alpha = 0.7;
 
 #include <ros.h>
 #include <ros/time.h>
@@ -54,8 +57,8 @@ int16_t ax, ay, az, gx, gy, gz;
 #define dim_m 4 // Legs
 #define dim_s 6 // Gyro acceleration and rotation
 
-#define servoMin 40
-#define servoMax 110
+#define servoMin 80
+#define servoMax 100
 
 
 // Prototypes
@@ -66,7 +69,7 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max);
 ros::NodeHandle  nh;
 
 float servoPos[dim_m] = {90, 90, 90, 90};
-float servoDir = 0.2;
+float servoDir = 3;
 
 tiny_msgs::tinyIMU imu_msg;
 ros::Publisher imu_pub("tinyImu", &imu_msg);
@@ -77,7 +80,7 @@ uint32_t seq;
 
 // Servo variables
 int16_t servoPin[dim_m] = {5, 6, 9, 10};
-bool servoRevert[dim_m] = {false, false, true, true};
+bool servoRevert[dim_m] = {true, false, true, false};
 Servo   servos[dim_m];
 
 
@@ -112,34 +115,43 @@ void setup()
 void loop()
 {
   seq++;
+  
   accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-  imu_msg.header.stamp = nh.now();
-  imu_msg.header.frame_id = 0;
-  imu_msg.header.seq = seq;
-
-  imu_msg.accel.x = ax;
-  imu_msg.accel.y = ay;
-  imu_msg.accel.z = az;
-  imu_msg.gyro.x = gx;
-  imu_msg.gyro.y = gy;
-  imu_msg.gyro.z = gz; //mapfloat(gz, -32768, 32768, 0, 1);
-
-  imu_pub.publish( &imu_msg );
-
-  nh.spinOnce();
+  ax_m = (double)ax * accel_alpha + ax_m * (1-accel_alpha);
+  ay_m = (double)ay * accel_alpha + ay_m * (1-accel_alpha);
+  az_m = (double)az * accel_alpha + az_m * (1-accel_alpha);
+  gx_m = (double)gx * accel_alpha + gx_m * (1-gyro_alpha);
+  gy_m = (double)gy * accel_alpha + gy_m * (1-gyro_alpha);
+  gz_m = (double)gz * accel_alpha + gz_m * (1-gyro_alpha);
   
-  // might be enough time for the answer and the callback
-  delay(10);
-
-  if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
-
-  // Attach Servos
-  for(int i = 0; i < dim_m; i++){
-    servoPos[i] += servoDir;
-    writeServoPosition(i, servoPos[i]);
+  if(seq % 10 == 0){
+  
+    imu_msg.header.stamp = nh.now();
+    imu_msg.header.frame_id = 0;
+    imu_msg.header.seq = seq;
+  
+    imu_msg.accel.x = (int16_t)ax_m;
+    imu_msg.accel.y = (int16_t)ay_m;
+    imu_msg.accel.z = (int16_t)az_m;
+    imu_msg.gyro.x = (int16_t)gx_m;
+    imu_msg.gyro.y = (int16_t)gy_m;
+    imu_msg.gyro.z = (int16_t)gz_m; //mapfloat(gz, -32768, 32768, 0, 1);
+  
+    imu_pub.publish( &imu_msg );
+  
+    nh.spinOnce();
+  
+    if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
+  
+    // write Servos
+    for(int i = 0; i < dim_m; i++){
+      servoPos[i] += servoDir;
+      writeServoPosition(i, servoPos[i]);
+    }
   }
-
+  // results in ~20Hz publishing
+  delay(3);
 
 }
 

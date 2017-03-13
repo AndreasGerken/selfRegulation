@@ -32,12 +32,12 @@ class Homeostasis():
 
         # initialize controller variables
         self.controller = self.Controller()
-        self.controller.C = np.random.uniform(-1e-1, 1e-1, size=(self.dim_m, self.dim_s))  # random
+        self.controller.C = np.random.uniform(-1e-2, 1e-2, size=(self.dim_m, self.dim_s))  # random
         self.controller.h = np.random.uniform(-1e-2, 1e-2, size=self.y.shape)
 
         # initialize learning variables
         # TODO: should this be done here?
-        self.setLearningRates(0.05, 0.15)
+        self.setLearningRates(0.03, 0.5)
 
     # Setter for learning rates of the model and the controller
     def setLearningRates(self, epsA, epsC):
