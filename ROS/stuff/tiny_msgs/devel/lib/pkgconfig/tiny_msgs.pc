@@ -1,8 +1,0 @@
-prefix=/home/andi/Documents/selfRegulation/ROS/stuff/tiny_msgs/devel
-
-Name: tiny_msgs
-Description: Description of tiny_msgs
-Version: 0.0.0
-Cflags: -I/home/andi/Documents/selfRegulation/ROS/stuff/tiny_msgs/devel/include
-Libs: -L/home/andi/Documents/selfRegulation/ROS/stuff/tiny_msgs/devel/lib 
-Requires: 

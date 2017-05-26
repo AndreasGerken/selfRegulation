@@ -45,13 +45,10 @@ double ax_m, ay_m, az_m, gx_m, gy_m, gz_m;
 double accel_alpha = 0.7; // Experimental Values
 double gyro_alpha = 0.7;
 
-#include <ros.h>
-#include <ros/time.h>
-#include <tiny_msgs/tinyVector.h>
-#include <tiny_msgs/tinyIMU.h>
-#include <std_msgs/Float32MultiArray.h>
-
 #include <Servo.h>
+
+#include <ros.h>
+#include <std_msgs/Int32.h>
 
 // General variables
 #define dim_m 4 // Legs
@@ -63,18 +60,11 @@ double gyro_alpha = 0.7;
 
 // Prototypes
 void writeServoPosition(int servoIndex, int position);
-void receiveMessage( const std_msgs::Float32MultiArray& message);
 float mapfloat(long x, long in_min, long in_max, long out_min, long out_max);
 
-ros::NodeHandle  nh;
-
 float servoPos[dim_m] = {90, 90, 90, 90};
-float servoDir = 3;
-
-tiny_msgs::tinyIMU imu_msg;
-ros::Publisher imu_pub("tinyImu", &imu_msg);
-
-ros::Subscriber<std_msgs::Float32MultiArray> subscriber("homeostasis_motor", receiveMessage);
+float sin_speed = 0.5;
+float sin_phase = 0;
 
 uint32_t seq;
 
@@ -84,7 +74,23 @@ bool servoRevert[dim_m] = {true, false, true, false};
 int16_t servoOffset[dim_m] = {0, 0, 0, 0};
 Servo   servos[dim_m];
 
-int16_t lastReceivedMessage;
+
+void messageCb( const std_msgs::Int32& messageSub){
+    sin_phase += sin_speed;
+    
+    
+    // write Servos
+    for(int i = 0; i < dim_m; i++){
+
+      servoPos[i] = (int)(sin(sin_phase) * 5. + 115.);
+      //Serial.println(sin(sin_phase));
+      writeServoPosition(i, servoPos[i]);
+    }
+    //sin_speed += 0.0005;
+}
+
+ros::Subscriber<std_msgs::Int32> sub("comTestPub", &messageCb );
+ros::NodeHandle nh;
 
 
 void setup()
@@ -95,17 +101,13 @@ void setup()
   #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
       Fastwire::setup(400, true);
   #endif
-  nh.initNode();
-  nh.advertise(imu_pub);
-  nh.subscribe(subscriber);
-  
-  nh.loginfo("ROS Setup finished, starting MPU6050");
-  
   accelgyro.initialize();
 
+  Serial.begin(9600);
   // MPU 6050 initialization
-  nh.loginfo(accelgyro.testConnection() ? "MPU6050 connection successfull" : "MPU6050 connection failed");
-
+  Serial.print(accelgyro.testConnection() ? "MPU6050 connection successfull" : "MPU6050 connection failed");
+  nh.initNode();
+  nh.subscribe(sub);
   seq = 0;
 
   // Attach Servos
@@ -114,8 +116,6 @@ void setup()
     servos[i].write(servoPos[i]);
   }
 
-  // init last received message
-  lastReceivedMessage =0;
 }
 
 void loop()
@@ -132,46 +132,31 @@ void loop()
   gz_m = (double)gz * accel_alpha + gz_m * (1-gyro_alpha);
   
   if(seq % 10 == 0){
-  
-    imu_msg.header.stamp = nh.now();
-    imu_msg.header.frame_id = 0;
-    imu_msg.header.seq = seq;
-  
-    imu_msg.accel.x = (int16_t)ax_m;
-    imu_msg.accel.y = (int16_t)ay_m;
-    imu_msg.accel.z = (int16_t)az_m;
-    imu_msg.gyro.x = (int16_t)gx_m;
-    imu_msg.gyro.y = (int16_t)gy_m;
-    imu_msg.gyro.z = (int16_t)gz_m; //mapfloat(gz, -32768, 32768, 0, 1);
-  
-    imu_pub.publish( &imu_msg );
-  
-    nh.spinOnce();
-  
+    Serial.print((int16_t)ax_m);
+    Serial.print("\t");
+    Serial.print((int16_t)ay_m);
+    Serial.print("\t");
+    Serial.print((int16_t)az_m);
+    Serial.print("\t");
+    Serial.print((int16_t)gx_m);
+    Serial.print("\t");
+    Serial.print((int16_t)gy_m);
+    Serial.print("\t");
+    Serial.print((int16_t)gz_m); //mapfloat(gz, -32768, 32768, 0, 1);
+    Serial.print("\t");
+    Serial.print(sin_speed);
+    Serial.print("\n");
+
+
     
-
-
-    // if last motor message was more than 1 second ago, sweep
-    //if(millis() - lastReceivedMessage > 5000){
-    //  if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
-      
-    //  servoPos[0] += servoDir;
-    //  servoPos[1] = servoPos[0];
-    //  servoPos[2] = servoPos[0];
-    //  servoPos[3] = servoPos[0];
-    //  }
-  
-    // write Servos
-    for(int i = 0; i < dim_m; i++){
-
-      
-      writeServoPosition(i, servoPos[i]);
-    }
   }
+  nh.spinOnce();
   // results in ~20Hz publishing
   delay(3);
 
 }
+
+
 
 
 void writeServoPosition(int servoIndex, int position){
@@ -190,13 +175,3 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max)
  if (x < in_min) x = in_min;
  return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
 }
-
-
-void receiveMessage( const std_msgs::Float32MultiArray& message){
-  lastReceivedMessage = millis();
-  servoPos[0] = mapfloat(message.data[0], -32768, 32768, servoMin, servoMax);;
-  servoPos[1] = mapfloat(message.data[1], -32768, 32768, servoMin, servoMax);;
-  servoPos[2] = mapfloat(message.data[2], -32768, 32768, servoMin, servoMax);;
-  servoPos[3] = mapfloat(message.data[3], -32768, 32768, servoMin, servoMax);;
-}
-

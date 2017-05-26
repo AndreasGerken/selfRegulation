@@ -20,16 +20,13 @@ class Homeostasis_ROS(object):
         # create predError message
         self.predErrorMessage = Float32()
 
-        # create phase increment message
-        self.phaseIncrementMessage = Float32()
-
         # initialize ros node
         rospy.init_node(self.name)
 
         # initialize publishers and subscribers
         self.pub = rospy.Publisher("/homeostasis_motor", Float32MultiArray, queue_size=5)
         self.predErrorPub = rospy.Publisher("/predictionError", Float32, queue_size=5)
-        self.phaseIncrementPub = rospy.Publisher("/phaseIncrement", Float32, queue_size=5)
+        self.motorPub = rospy.Publisher("/motor", Float32, queue_size=5)
 
         self.sub = rospy.Subscriber("/tinyImu", tinyIMU, self.receiveSensorValues)
 
@@ -51,7 +48,12 @@ class Homeostasis_ROS(object):
 
         self.phaseIncrement = 0
 
+        self.seq = 0
+
     def receiveSensorValues(self, msg):
+
+        self.seq += 1
+
         #sensorData = np.array(msg.data).reshape((2,1))
 
         if args.verbose:
@@ -89,8 +91,9 @@ class Homeostasis_ROS(object):
 
         self.homeostasis.learningStep()
 
-        print("C: " + str(self.homeostasis.controller.C))
-        print("A: %s" % self.homeostasis.model.A)
+        #print("C: " + str(self.homeostasis.controller.C))
+        #print("A: %s" % self.homeostasis.model.A)
+
         # min 0.5 Hz, max 3 Hz:
         # min 1 Pi Rad/s bei 100Hz pi/20 Increments per step
         # max 6 Pi Rad/s bei 100Hz 4pi/20 Increments per step
@@ -101,11 +104,6 @@ class Homeostasis_ROS(object):
         # /100 [1pi/100; 4pi/100]
         # ()((incr + 1)/ 2) * 5 pi + 1 pi) / 100)
 
-        self.phaseIncrement = self.homeostasis.y[0,0]
-        #print("increment: " + str(self.phaseIncrement))
-        self.phaseIncrement = (((self.phaseIncrement + 1)/2) * 3 * np.pi + 1 * np.pi) / 20
-
-        print("self.phaseIncrement")
         #self.phaseOffset1 +=  self.homeostasis.y[1,0] * np.pi * 2.0
         #print("offset1: " + str(self.phaseOffset1))
 
@@ -115,26 +113,21 @@ class Homeostasis_ROS(object):
         #self.phaseOffset3 +=  self.homeostasis.y[3,0] * np.pi * 2.0
         #print("offset3: " + str(self.phaseOffset3))
 
-        print("prediction: %s" % self.homeostasis.xPred)
+        #print("prediction: %s" % self.homeostasis.xPred)
 
-        print("PredictionError: " + str(self.homeostasis.calculatePredictionError()[0,0]))
+        #print("PredictionError: " + str(self.homeostasis.calculatePredictionError()[0,0]))
         #self.predErrorArray.append(self.homeostasis.calculatePredictionError()[0,0])
 
         #plt.scatter(self.homeostasis.y.flatten().tolist())
 
-        self.phaseOffset1 = 0
-        self.phaseOffset2 = 0
-        self.phaseOffset3 = 0
+        self.motor1 = -1.0
+        if(self.seq > 100 and self.seq < 110):
+            self.motor1 = (self.seq - 105.0) / 5.0
 
+        if self.seq >= 110:
+            self.motor1 = 1.0
 
-        self.phase1 += self.phaseIncrement
-
-        self.motor1 = np.sin(self.phase1)
-        self.motor2 = np.sin(self.phase1 + self.phaseOffset1)
-        self.motor3 = np.sin(self.phase1 + self.phaseOffset2)
-        self.motor4 = np.sin(self.phase1 + self.phaseOffset3)
-
-        motor = [self.motor1, self.motor2, self.motor3, self.motor4]
+        motor = [self.motor1, self.motor1, self.motor1, self.motor1]
 
         for m in range(len(motor)):
             motor[m] *= 32768.0 # same coding as imu
@@ -149,9 +142,6 @@ class Homeostasis_ROS(object):
         self.predErrorPub.publish(self.predErrorMessage)
 
         # publish phaseIncrement
-        print("phaseIncrement: %s" % self.phaseIncrement)
-        self.phaseIncrementPub.data = self.phaseIncrement
-        self.phaseIncrementPub.publish(self.phaseIncrementMessage)
 
         if args.verbose:
             print("MotorData sent: " + time.strftime('%X'))
