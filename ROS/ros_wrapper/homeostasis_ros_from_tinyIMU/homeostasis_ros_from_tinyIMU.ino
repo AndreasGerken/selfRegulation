@@ -69,7 +69,6 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max);
 ros::NodeHandle  nh;
 
 float servoPos[dim_m] = {90, 90, 90, 90};
-float servoDir = 3;
 
 tiny_msgs::tinyIMU imu_msg;
 ros::Publisher imu_pub("tinyImu", &imu_msg);
@@ -77,6 +76,13 @@ ros::Publisher imu_pub("tinyImu", &imu_msg);
 ros::Subscriber<std_msgs::Float32MultiArray> subscriber("homeostasis_motor", receiveMessage);
 
 uint32_t seq;
+unsigned long currentMillis;
+
+unsigned long imuPrevious = 0;
+unsigned long publishPrevious = 0;
+
+unsigned long imuInterval = 5;
+unsigned long publishInterval = 50;
 
 // Servo variables
 int16_t servoPin[dim_m] = {5, 6, 9, 10};
@@ -120,19 +126,10 @@ void setup()
 
 void loop()
 {
-  seq++;
-  
-  accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  currentMillis = millis();
 
-  ax_m = (double)ax * accel_alpha + ax_m * (1-accel_alpha);
-  ay_m = (double)ay * accel_alpha + ay_m * (1-accel_alpha);
-  az_m = (double)az * accel_alpha + az_m * (1-accel_alpha);
-  gx_m = (double)gx * accel_alpha + gx_m * (1-gyro_alpha);
-  gy_m = (double)gy * accel_alpha + gy_m * (1-gyro_alpha);
-  gz_m = (double)gz * accel_alpha + gz_m * (1-gyro_alpha);
-  
-  if(seq % 10 == 0){
-  
+  if(currentMillis - publishPrevious >= publishInterval){
+    seq ++;
     imu_msg.header.stamp = nh.now();
     imu_msg.header.frame_id = 0;
     imu_msg.header.seq = seq;
@@ -148,29 +145,25 @@ void loop()
   
     nh.spinOnce();
   
-    
-
-
-    // if last motor message was more than 1 second ago, sweep
-    //if(millis() - lastReceivedMessage > 5000){
-    //  if (servoPos[0] > servoMax || servoPos[0] < servoMin) servoDir *= -1;
-      
-    //  servoPos[0] += servoDir;
-    //  servoPos[1] = servoPos[0];
-    //  servoPos[2] = servoPos[0];
-    //  servoPos[3] = servoPos[0];
-    //  }
-  
     // write Servos
     for(int i = 0; i < dim_m; i++){
-
-      
       writeServoPosition(i, servoPos[i]);
     }
-  }
-  // results in ~20Hz publishing
-  delay(3);
+    
+    publishPrevious = currentMillis;
+    
+  }else if(currentMillis - imuPrevious >= imuInterval) {    
+    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  
+    ax_m = (double)ax * accel_alpha + ax_m * (1-accel_alpha);
+    ay_m = (double)ay * accel_alpha + ay_m * (1-accel_alpha);
+    az_m = (double)az * accel_alpha + az_m * (1-accel_alpha);
+    gx_m = (double)gx * accel_alpha + gx_m * (1-gyro_alpha);
+    gy_m = (double)gy * accel_alpha + gy_m * (1-gyro_alpha);
+    gz_m = (double)gz * accel_alpha + gz_m * (1-gyro_alpha);
 
+    imuPrevious = currentMillis;
+  }
 }
 
 
